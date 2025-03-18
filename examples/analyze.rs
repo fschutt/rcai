@@ -2,6 +2,57 @@ use rcai::sentence::ParsedSentence;
 use rcai::text::Text;
 use rcai::wordnet::SynsetDatabase;
 
+fn test_adverbial_clauses(db: &SynsetDatabase) {
+    let examples = [
+        // Time clauses
+        "Her goldfish died when she was young.",
+        "He came after night had fallen.",
+        "We barely had gotten there when mighty Casey struck out.",
+        "He told us his adventures in Arctic as we went along.",
+        
+        // Condition clauses
+        "If they lose weight during an illness, they soon regain it afterwards.",
+        
+        // Purpose clauses
+        "They had to take some of his land so that they could extend the churchyard.",
+        
+        // Reason clauses
+        "I couldn't feel anger against him because I liked him too much.",
+        
+        // Concession clauses
+        "I used to read a lot, though I don't have much time for books now.",
+        
+        // Place clauses
+        "He said he was happy where he was.",
+        
+        // Comparison clauses
+        "Johan can speak English as fluently as his teacher can.",
+        "She is a better cook than I am.",
+        
+        // Manner clauses
+        "I was never allowed to do things as I wanted to do.",
+        "He spent a lot of money as if he was very rich.",
+        
+        // Result clauses
+        "My suitcase had become so damaged that the lid would not stay closed.",
+        
+        // With adverbs of frequency
+        "He is often late for work."
+    ];
+    
+    for (i, example) in examples.iter().enumerate() {
+        println!("Example {}: {}", i + 1, example);
+        
+        match ParsedSentence::new(example, db) {
+            Ok(parsed) => {
+                println!("{}", parsed.to_string());
+                println!("-----------------------------------");
+            },
+            Err(e) => println!("Error parsing: {}", e),
+        }
+    }
+}
+
 fn main() {
     // Use the mock database for this example
     let db = SynsetDatabase::new().unwrap();
@@ -20,6 +71,8 @@ fn main() {
     // eat     VERB    UUID 0145e2 INSTANCE 01cb9c MODIFIERS unkindly TENSE past
     // mouse   NOUN    UUID 002fda INSTANCE 01cb9d MODIFIERS thirsty TYPE object
 
+    test_adverbial_clauses(&db);
+    
     // Now, how do we express this text:
     let text = Text::parse(
         "
