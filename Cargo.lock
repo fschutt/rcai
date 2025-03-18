@@ -39,6 +39,7 @@ dependencies = [
  "serde",
  "serde_derive",
  "serde_json",
+ "wn-parser",
 ]
 
 [[package]]
@@ -95,3 +96,12 @@ name = "unicode-ident"
 version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5a5f39404a5da50712a4c1eecf25e90dd62b613502b7e925fd4e4d19b5c96512"
+
+[[package]]
+name = "wn-parser"
+version = "0.1.0"
+source = "git+https://github.com/fschutt/wn-parser?rev=0d858a652b3705ebe2db62c8f9a34c03cd85e160#0d858a652b3705ebe2db62c8f9a34c03cd85e160"
+dependencies = [
+ "serde",
+ "serde_derive",
+]
