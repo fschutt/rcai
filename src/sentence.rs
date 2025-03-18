@@ -4,7 +4,7 @@ use serde_derive::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashSet};
 use wn_parser::common::SynsetType;
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialOrd, PartialEq, Eq, Ord, Serialize, Deserialize)]
 pub enum TokenType {
     Noun,
     Verb,
@@ -20,7 +20,7 @@ pub enum TokenType {
     Unknown,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialOrd, PartialEq, Eq, Ord, Serialize, Deserialize)]
 pub struct Token {
     pub text: String,
     pub normalized_text: String,
@@ -30,7 +30,7 @@ pub struct Token {
     pub modifiers: Vec<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialOrd, PartialEq, Eq, Ord, Serialize, Deserialize)]
 pub enum SentenceRole {
     Subject,
     Verb { tense: Tense },
@@ -40,7 +40,7 @@ pub enum SentenceRole {
     PrepositionalPhrase { preposition: String },
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialOrd, PartialEq, Eq, Ord, Serialize, Deserialize)]
 pub enum Tense {
     Infinitive,
     PresentSimple,
@@ -58,20 +58,20 @@ pub enum Tense {
     ConditionalSimple,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialOrd, PartialEq, Eq, Ord, Serialize, Deserialize)]
 pub struct ParsedToken {
     pub token: Token,
     pub role: SentenceRole,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialOrd, PartialEq, Eq, Ord, Serialize, Deserialize)]
 pub struct Clause {
     pub tokens: Vec<ParsedToken>,
     pub clause_type: ClauseType,
     pub reference: Option<ReferenceType>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialOrd, PartialEq, Eq, Ord, Serialize, Deserialize)]
 pub enum AdverbialClauseType {
     Time,        // when, after, before, as, while, until, since
     Condition,   // if, unless, provided that
@@ -85,7 +85,7 @@ pub enum AdverbialClauseType {
     Frequency,   // whenever, every time
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialOrd, PartialEq, Eq, Ord, Serialize, Deserialize)]
 pub enum ClauseType {
     Main,
     Subordinate { conjunction: Option<String> },
@@ -96,13 +96,13 @@ pub enum ClauseType {
     },
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialOrd, PartialEq, Eq, Ord, Serialize, Deserialize)]
 pub enum ReferenceType {
     Pronoun { referent: Uuid }, // Points to instance UUID of the referent
     Demonstrative { referent: Uuid }, // For "this", "that", etc.
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialOrd, PartialEq, Eq, Ord, Serialize, Deserialize)]
 pub struct ParsedSentence {
     pub clauses: Vec<Clause>,
     pub references: BTreeMap<Uuid, Uuid>, // Maps pronouns to their referents
@@ -260,6 +260,7 @@ const PREPOSITIONS: &[&str] = &[
 const COORDINATING_CONJUNCTIONS: &[&str] = &["and", "but", "or", "nor", "for", "yet", "so"];
 
 // Create a struct to hold subordinating conjunctions with their types
+#[derive(Debug, Clone, PartialOrd, PartialEq, Eq, Ord, Serialize, Deserialize)]
 struct SubordinatingConjunction {
     conjunction: &'static str,
     clause_type: AdverbialClauseType,

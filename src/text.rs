@@ -1,4 +1,7 @@
+use crate::sentence::ParsedSentence;
+use crate::wordnet::SynsetDatabase;
 use serde_derive::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Debug, PartialEq, PartialOrd, Ord, Eq, Serialize, Deserialize)]
 pub struct Paragraph {
@@ -9,6 +12,7 @@ pub struct Paragraph {
 #[derive(Debug, PartialEq, PartialOrd, Ord, Eq, Serialize, Deserialize)]
 pub struct Text {
     pub sentences: Vec<String>,
+    pub parsed_sentences: Option<Vec<ParsedSentence>>,
 }
 
 impl Text {
@@ -40,8 +44,152 @@ impl Text {
 
         Self {
             sentences: sentences.iter().map(|c| clean_text(c)).collect(),
+            parsed_sentences: None,
         }
     }
+
+    /// Parse all sentences with linguistic analysis
+    pub fn parse_linguistically(&mut self, db: &SynsetDatabase) -> Result<(), String> {
+        let mut parsed = Vec::new();
+
+        for sentence in &self.sentences {
+            match ParsedSentence::new(sentence, db) {
+                Ok(parsed_sentence) => parsed.push(parsed_sentence),
+                Err(e) => return Err(format!("Error parsing sentence '{}': {}", sentence, e)),
+            }
+        }
+
+        self.parsed_sentences = Some(parsed);
+        Ok(())
+    }
+
+    /// Find references between sentences (anaphora resolution)
+    pub fn resolve_references(&mut self) -> Result<(), String> {
+        if self.parsed_sentences.is_none() {
+            return Err("Sentences must be parsed first".to_string());
+        }
+        
+        // Track potential referents across sentences
+        let mut potential_referents = HashMap::new();
+        
+        if let Some(ref mut parsed_sentences) = self.parsed_sentences {
+            let ps_len = parsed_sentences.len();
+            for i in 0..ps_len {
+                // Extract subjects from current sentence
+                let cur_subjects = parsed_sentences[i].get_subjects().into_iter().cloned().collect::<Vec<_>>();
+                for subject in cur_subjects.iter() {
+                    if let Some(instance) = subject.token.instance {
+                        potential_referents.insert(subject.token.text.to_lowercase(), instance);
+                    }
+                }
+                
+                // Extract objects from current sentence
+                for object in parsed_sentences[i].get_objects() {
+                    if let Some(instance) = object.token.instance {
+                        potential_referents.insert(object.token.text.to_lowercase(), instance);
+                    }
+                }
+                
+                // Try to resolve pronouns in next sentence
+                if i < ps_len - 1 {
+                    for clause in &mut parsed_sentences[i + 1].clauses {
+                        for token in &clause.tokens {
+                            if token.token.token_type == crate::sentence::TokenType::Pronoun {
+                                let pronoun = token.token.text.to_lowercase();
+                                
+                                // Basic pronoun resolution - can be improved
+                                if pronoun == "it" || pronoun == "this" || pronoun == "that" {
+                                    // For demonstratives, probably referring to previous concept
+                                    if let Some(last_subject) = cur_subjects.first() {
+                                        if let Some(instance) = last_subject.token.instance {
+                                            // Link the pronoun to this referent
+                                            if let Some(ref mut references) = clause.reference {
+                                                // Update the reference
+                                                // TODO: doesn't update the reference
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        Ok(())
+    }
+
+    /// Perform causal analysis on the text
+    pub fn analyze_causality(&self) -> Vec<CausalRelationship> {
+        let mut relationships = Vec::new();
+        
+        // This is a placeholder for more sophisticated causal analysis
+        // In a real implementation, we would:
+        // 1. Identify causal terms ("because", "since", "therefore", etc.)
+        // 2. Track state changes mentioned in sentences
+        // 3. Identify temporal ordering
+        // 4. Build causal graphs
+        
+        if let Some(ref parsed_sentences) = self.parsed_sentences {
+            for (i, sentence) in parsed_sentences.iter().enumerate() {
+                // Look for causality markers in each clause
+                for clause in &sentence.clauses {
+                    for token in &clause.tokens {
+                        // Check for causal verbs
+                        if token.token.normalized_text == "cause" || 
+                           token.token.normalized_text == "lead" ||
+                           token.token.normalized_text == "result" {
+                            // Extract cause and effect
+                            if let Some(subject) = clause.tokens.iter().find(|t| t.role.is_subject()) {
+                                if let Some(object) = clause.tokens.iter().find(|t| t.role.is_object()) {
+                                    relationships.push(CausalRelationship {
+                                        cause: subject.token.text.clone(),
+                                        effect: object.token.text.clone(),
+                                        relationship_type: RelationshipType::Direct,
+                                    });
+                                }
+                            }
+                        }
+                        
+                        // Check for words indicating state changes
+                        if token.token.normalized_text == "supersede" || 
+                           token.token.normalized_text == "replace" ||
+                           token.token.normalized_text == "substitute" {
+                            // This indicates a replacement relationship
+                            if let Some(subject) = clause.tokens.iter().find(|t| t.role.is_subject()) {
+                                if let Some(object) = clause.tokens.iter().find(|t| t.role.is_object()) {
+                                    relationships.push(CausalRelationship {
+                                        cause: subject.token.text.clone(),
+                                        effect: format!("{} replaces {}", subject.token.text, object.token.text),
+                                        relationship_type: RelationshipType::Replacement,
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        relationships
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CausalRelationship {
+    pub cause: String,
+    pub effect: String,
+    pub relationship_type: RelationshipType,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum RelationshipType {
+    Direct,       // A causes B
+    Enablement,   // A enables B
+    Prevention,   // A prevents B
+    Replacement,  // A replaces B
+    Temporal,     // A happens before B
 }
 
 /// Clean text by removing special characters and normalizing whitespace
